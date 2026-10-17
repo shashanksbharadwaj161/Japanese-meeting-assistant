@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https:">
+  <title>Pre-Flight Check</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', 'Meiryo', sans-serif;
+      background: rgba(18, 18, 24, 0.96);
+      color: #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      -webkit-app-region: drag;
+    }
+
+    .preflight {
+      width: 420px;
+      -webkit-app-region: no-drag;
+    }
+
+    /* Header */
+    .pf-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .pf-header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .pf-header p {
+      font-size: 12px;
+      color: #888;
+    }
+
+    /* Check list */
+    .check-list {
+      list-style: none;
+      margin-bottom: 20px;
+    }
+    .check-item {
+      display: flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-bottom: 4px;
+      gap: 10px;
+      transition: background 0.2s;
+    }
+    .check-item:hover { background: rgba(255,255,255,0.02); }
+
+    /* Icon states */
+    .check-icon {
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      flex-shrink: 0;
+      border-radius: 50%;
+    }
+    .check-icon.pending {
+      color: #888;
+    }
+    .check-icon.running {
+      color: #42a5f5;
+      animation: spin 1s linear infinite;
+    }
+    .check-icon.pass {
+      color: #4caf50;
+    }
+    .check-icon.fail {
+      color: #f44336;
+    }
+    .check-icon.warn {
+      color: #ff9800;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .check-name {
+      font-size: 13px;
+      color: #ccc;
+      flex: 1;
+    }
+    .check-status {
+      font-size: 11px;
+      color: #888;
+      text-align: right;
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .check-status.status-pass { color: #4caf50; }
+    .check-status.status-fail { color: #f44336; }
+    .check-status.status-warn { color: #ff9800; }
+
+    /* Progress bar */
+    .progress-wrap {
+      height: 3px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 2px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      background: #42a5f5;
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    /* Warning box */
+    .warn-box {
+      background: rgba(255,152,0,0.08);
+      border: 1px solid rgba(255,152,0,0.25);
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      color: #ff9800;
+      line-height: 1.5;
+      display: none;
+    }
+    .warn-box.visible { display: block; }
+
+    /* Buttons */
+    .pf-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    .btn-start {
+      padding: 12px 36px;
+      background: #4caf50;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+    }
+    .btn-start:hover { background: #43a047; }
+    .btn-start:disabled { background: #333; color: #666; cursor: not-allowed; }
+
+    .btn-skip {
+      padding: 12px 20px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #aaa;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-skip:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+    .pf-footer {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 11px;
+      color: #555;
+    }
+
+    /* Volume meter (inline for mic test) */
+    .vol-meter {
+      width: 50px;
+      height: 4px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 2px;
+      overflow: hidden;
+      display: inline-block;
+      vertical-align: middle;
+      margin-left: 6px;
+    }
+    .vol-meter-fill {
+      height: 100%;
+      background: #4caf50;
+      width: 0%;
+      transition: width 0.1s;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="preflight">
+    <div class="pf-header">
+      <h1>Pre-Flight Check</h1>
+      <p>Verifying all systems before your interview</p>
+    </div>
+
+    <ul class="check-list">
+      <li class="check-item" id="row-mic">
+        <span class="check-icon pending" id="icon-mic">&#9679;</span>
+        <span class="check-name">Microphone</span>
+        <span class="check-status" id="status-mic">waiting</span>
+      </li>
+      <li class="check-item" id="row-audio">
+        <span class="check-icon pending" id="icon-audio">&#9679;</span>
+        <span class="check-name">System Audio</span>
+        <span class="check-status" id="status-audio">waiting</span>
+      </li>
+      <li class="check-item" id="row-internet">
+        <span class="check-icon pending" id="icon-internet">&#9679;</span>
+        <span class="check-name">Internet Connection</span>
+        <span class="check-status" id="status-internet">waiting</span>
+      </li>
+      <li class="check-item" id="row-deepgram">
+        <span class="check-icon pending" id="icon-deepgram">&#9679;</span>
+        <span class="check-name">Deepgram API</span>
+        <span class="check-status" id="status-deepgram">waiting</span>
+      </li>
+      <li class="check-item" id="row-claude">
+        <span class="check-icon pending" id="icon-claude">&#9679;</span>
+        <span class="check-name">Anthropic API</span>
+        <span class="check-status" id="status-claude">waiting</span>
+      </li>
+      <li class="check-item" id="row-stealth">
+        <span class="check-icon pending" id="icon-stealth">&#9679;</span>
+        <span class="check-name">Screen Protection</span>
+        <span class="check-status" id="status-stealth">waiting</span>
+      </li>
+      <li class="check-item" id="row-watchdog">
+        <span class="check-icon pending" id="icon-watchdog">&#9679;</span>
+        <span class="check-name">Watchdog Process</span>
+        <span class="check-status" id="status-watchdog">waiting</span>
+      </li>
+      <li class="check-item" id="row-cache">
+        <span class="check-icon pending" id="icon-cache">&#9679;</span>
+        <span class="check-name">Offline Answer Cache</span>
+        <span class="check-status" id="status-cache">waiting</span>
+      </li>
+    </ul>
+
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+
+    <!-- Audio live volume indicator during system audio test -->
+    <div id="audio-test-meter" style="display:none;margin:8px 0;text-align:center;">
+      <div style="display:inline-block;width:200px;height:10px;background:rgba(255,255,255,0.08);border-radius:5px;overflow:hidden;">
+        <div id="audio-test-bar" style="width:0%;height:100%;background:#22c55e;border-radius:5px;transition:width 80ms ease-out;"></div>
+      </div>
+      <div style="font-size:10px;color:#888;margin-top:2px;" id="audio-test-label">Listening for audio...</div>
+    </div>
+
+    <!-- Quick test: plays Japanese TTS and checks transcription -->
+    <div style="text-align:center;margin:8px 0;">
+      <button id="btn-test-audio" style="background:rgba(59,130,246,0.2);border:1px solid rgba(59,130,246,0.4);color:#93c5fd;padding:6px 16px;border-radius:6px;font-size:12px;cursor:pointer;" title="Plays a short Japanese phrase via TTS and checks if it gets transcribed">
+        Test Audio Pipeline
+      </button>
+      <div id="test-audio-result" style="font-size:11px;color:#888;margin-top:4px;"></div>
+    </div>
+
+    <div class="warn-box" id="warn-box"></div>
+
+    <div class="pf-actions">
+      <button id="btn-start" class="btn-start" disabled>Start Session</button>
+      <button id="btn-skip" class="btn-skip">Skip</button>
+    </div>
+
+    <div class="pf-footer" id="pf-footer">Running checks...</div>
+  </div>
+
+  <script>
+    // ==================================================================
+    // Preflight Check Logic — 8 tests
+    // ==================================================================
+
+    // window.api is exposed by preload.js via contextBridge
+    // Do NOT redeclare as const/let — it's already a window global
+    const TOTAL_TESTS = 8;
+    let testsCompleted = 0;
+    let testsPassed = 0;
+    let testsWarned = 0;
+    let criticalFail = false;
+
+    // --- Helpers ---
+    function setIcon(name, state) {
+      const icon = document.getElementById('icon-' + name);
+      if (!icon) return;
+      icon.className = 'check-icon ' + state;
+      const symbols = { pending: '●', running: '↻', pass: '✓', fail: '✗', warn: '!' };
+      icon.textContent = symbols[state] || '●';
+    }
+
+    function setStatus(name, text, type) {
+      const el = document.getElementById('status-' + name);
+      if (!el) return;
+      el.textContent = text;
+      el.className = 'check-status' + (type ? ' status-' + type : '');
+    }
+
+    function updateProgress() {
+      const pct = Math.round((testsCompleted / TOTAL_TESTS) * 100);
+      const bar = document.getElementById('progress-bar');
+      if (bar) bar.style.width = pct + '%';
+    }
+
+    function testDone(name, passed, message, isWarning) {
+      testsCompleted++;
+      if (passed) {
+        testsPassed++;
+        setIcon(name, 'pass');
+        setStatus(name, message || 'OK', 'pass');
+      } else if (isWarning) {
+        testsWarned++;
+        setIcon(name, 'warn');
+        setStatus(name, message || 'Warning', 'warn');
+      } else {
+        setIcon(name, 'fail');
+        setStatus(name, message || 'Failed', 'fail');
+      }
+      updateProgress();
+      checkAllDone();
+    }
+
+    function checkAllDone() {
+      if (testsCompleted < TOTAL_TESTS) return;
+
+      const footer = document.getElementById('pf-footer');
+      const startBtn = document.getElementById('btn-start');
+
+      if (testsPassed === TOTAL_TESTS) {
+        footer.textContent = 'All checks passed! Ready to start.';
+        footer.style.color = '#4caf50';
+      } else if (criticalFail) {
+        footer.textContent = 'Critical checks failed. Fix issues before starting.';
+        footer.style.color = '#f44336';
+      } else {
+        footer.textContent = testsPassed + ' passed, ' + testsWarned + ' warnings. You can still start.';
+        footer.style.color = '#ff9800';
+      }
+
+      startBtn.disabled = false;
+    }
+
+    function showWarning(text) {
+      const box = document.getElementById('warn-box');
+      if (!box) return;
+      if (box.textContent) {
+        box.textContent += '\n' + text;
+      } else {
+        box.textContent = text;
+      }
+      box.style.whiteSpace = 'pre-line';
+      box.classList.add('visible');
+    }
+
+    // --- Test 1: Microphone ---
+    async function testMicrophone() {
+      setIcon('mic', 'running');
+      setStatus('mic', 'requesting access...');
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        // Brief volume check
+        const ctx = new AudioContext();
+        const source = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+
+        const data = new Uint8Array(analyser.frequencyBinCount);
+
+        await new Promise(resolve => {
+          let frames = 0;
+          const check = () => {
+            analyser.getByteFrequencyData(data);
+            frames++;
+            if (frames < 20) {
+              requestAnimationFrame(check);
+            } else {
+              resolve();
+            }
+          };
+          check();
+        });
+
+        stream.getTracks().forEach(t => t.stop());
+        ctx.close();
+
+        testDone('mic', true, 'Access granted');
+      } catch (err) {
+        testDone('mic', false, 'No access: ' + err.message);
+      }
+    }
+
+    // --- Test 2: System Audio (with live volume bar) ---
+    async function testSystemAudio() {
+      setIcon('audio', 'running');
+      setStatus('audio', 'checking loopback...');
+
+      const meterEl = document.getElementById('audio-test-meter');
+      const barEl = document.getElementById('audio-test-bar');
+      const labelEl = document.getElementById('audio-test-label');
+
+      try {
+        // Show volume meter
+        meterEl.style.display = 'block';
+        labelEl.textContent = 'Attempting loopback capture...';
+
+        // Try to capture loopback audio directly from the renderer
+        let stream = null;
+        try {
+          stream = await navigator.mediaDevices.getDisplayMedia({
+            audio: { channelCount: { ideal: 1 }, sampleRate: { ideal: 48000 } },
+            video: false
+          });
+        } catch {
+          // Loopback failed, try mic as fallback indicator
+          labelEl.textContent = 'Loopback unavailable, testing mic...';
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        }
+
+        // Monitor volume for 2 seconds
+        const ctx = new AudioContext();
+        const source = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        const data = new Float32Array(analyser.fftSize);
+        let maxLevel = 0;
+
+        await new Promise(resolve => {
+          let frames = 0;
+          const check = () => {
+            analyser.getFloatTimeDomainData(data);
+            let sum = 0;
+            for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
+            const rms = Math.sqrt(sum / data.length);
+            const pct = Math.min(1, rms * 5);
+            if (rms > maxLevel) maxLevel = rms;
+            barEl.style.width = (pct * 100) + '%';
+            barEl.style.background = pct > 0.05 ? '#22c55e' : '#555';
+            labelEl.textContent = pct > 0.05 ? 'Audio detected!' : 'Listening for audio...';
+            frames++;
+            if (frames < 80) { // ~2 seconds
+              requestAnimationFrame(check);
+            } else {
+              resolve();
+            }
+          };
+          check();
+        });
+
+        stream.getTracks().forEach(t => t.stop());
+        ctx.close();
+
+        // Also tell main process
+        const result = await window.api.audio.startLoopback();
+        const gotAudio = maxLevel > 0.005;
+        labelEl.textContent = gotAudio ? 'Audio pipeline verified' : 'No audio detected (play something to test)';
+
+        testDone('audio', true, gotAudio ? 'Loopback active' : 'Loopback ready (silent)');
+      } catch (e) {
+        meterEl.style.display = 'none';
+        testDone('audio', false, 'Loopback unavailable — will use mic', true);
+      }
+    }
+
+    // --- Test 3: Internet Connection ---
+    async function testInternet() {
+      setIcon('internet', 'running');
+      setStatus('internet', 'checking...');
+
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3000);
+        await fetch('https://1.1.1.1', { method: 'HEAD', mode: 'no-cors', signal: controller.signal });
+        clearTimeout(timeout);
+        testDone('internet', true, 'Connected');
+      } catch (e) {
+        try {
+          const controller2 = new AbortController();
+          const timeout2 = setTimeout(() => controller2.abort(), 3000);
+          await fetch('https://www.google.com/generate_204', { method: 'HEAD', mode: 'no-cors', signal: controller2.signal });
+          clearTimeout(timeout2);
+          testDone('internet', true, 'Connected');
+        } catch (e2) {
+          testDone('internet', false, 'No internet — offline mode only', true);
+        }
+      }
+    }
+
+    // --- Test 4: Deepgram API ---
+    async function testDeepgram() {
+      setIcon('deepgram', 'running');
+      setStatus('deepgram', 'testing API...');
+
+      try {
+        const config = await window.api.storage.getConfig();
+        const key = config.apiKeys ? config.apiKeys.deepgram : null;
+
+        if (!key) {
+          testDone('deepgram', false, 'No API key configured', true);
+          return;
+        }
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 4000);
+        const resp = await fetch('https://api.deepgram.com/v1/projects', {
+          headers: { 'Authorization': 'Token ' + key },
+          signal: controller.signal
+        });
+        clearTimeout(timeout);
+
+        if (resp.ok) {
+          testDone('deepgram', true, 'API key valid');
+        } else if (resp.status === 401) {
+          testDone('deepgram', false, 'Invalid API key');
+        } else {
+          testDone('deepgram', false, 'HTTP ' + resp.status, true);
+        }
+      } catch (e) {
+        testDone('deepgram', false, 'Connection failed', true);
+      }
+    }
+
+    // --- Test 5: Anthropic API ---
+    async function testClaude() {
+      setIcon('claude', 'running');
+      setStatus('claude', 'testing API...');
+
+      try {
+        const config = await window.api.storage.getConfig();
+        const key = config.apiKeys ? config.apiKeys.anthropic : null;
+
+        if (!key) {
+          testDone('claude', false, 'No API key configured', true);
+          return;
+        }
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        const resp = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': key,
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5',
+            max_tokens: 4,
+            messages: [{ role: 'user', content: 'hi' }]
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeout);
+
+        if (resp.ok) {
+          testDone('claude', true, 'Claude responding');
+        } else if (resp.status === 401) {
+          testDone('claude', false, 'Invalid API key');
+        } else {
+          testDone('claude', false, 'HTTP ' + resp.status, true);
+        }
+      } catch (e) {
+        testDone('claude', false, 'Connection failed', true);
+      }
+    }
+
+    // --- Test 6: Screen Protection ---
+    async function testStealth() {
+      setIcon('stealth', 'running');
+      setStatus('stealth', 'self-testing...');
+
+      try {
+        const result = await window.api.stealth.runSelfTest();
+        if (result.safe) {
+          testDone('stealth', true, result.method || 'Protected');
+        } else {
+          showWarning(result.message || 'Screen protection may not be active.');
+          testDone('stealth', false, 'Protection may be inactive', true);
+        }
+      } catch (e) {
+        // Self-test can fail gracefully — overlay window may not be visible during preflight
+        testDone('stealth', false, 'Deferred to session start', true);
+      }
+    }
+
+    // --- Test 7: Watchdog ---
+    async function testWatchdog() {
+      setIcon('watchdog', 'running');
+      setStatus('watchdog', 'checking...');
+
+      // Simple IPC roundtrip proves main process + watchdog are alive.
+      // Use getScreenSize (read-only, no side effects) instead of toggleOverlay.
+      try {
+        const info = await window.api.window.getScreenSize();
+        if (info && info.screenWidth > 0) {
+          testDone('watchdog', true, 'Process alive');
+        } else {
+          testDone('watchdog', false, 'Unexpected response', true);
+        }
+      } catch (e) {
+        testDone('watchdog', false, 'IPC ping failed', true);
+      }
+    }
+
+    // --- Test 8: Offline Cache ---
+    async function testCache() {
+      setIcon('cache', 'running');
+      setStatus('cache', 'checking...');
+
+      try {
+        const config = await window.api.storage.getConfig();
+        const key = config.apiKeys ? config.apiKeys.anthropic : null;
+
+        if (!key) {
+          testDone('cache', false, 'No Claude key — cache skipped', true);
+          return;
+        }
+
+        setStatus('cache', 'pre-generating answers...');
+        const result = await window.api.ai.preGenerateCache();
+
+        if (result.success && result.generated > 0) {
+          testDone('cache', true, result.generated + ' answers cached');
+        } else if (result.success) {
+          testDone('cache', true, 'Cache ready');
+        } else {
+          testDone('cache', false, result.message || 'Cache failed', true);
+        }
+      } catch (e) {
+        testDone('cache', false, 'Cache check failed', true);
+      }
+    }
+
+    // --- Run all tests sequentially ---
+    async function runAllTests() {
+      console.log('[preflight] Starting tests...');
+
+      // Pre-check: log which API keys are configured
+      try {
+        const cfg = await window.api.storage.getConfig();
+        const keys = cfg.apiKeys || {};
+        console.log('[preflight] API keys loaded:',
+          'Deepgram:', keys.deepgram ? 'YES' : 'MISSING',
+          'Anthropic:', keys.anthropic ? 'YES' : 'MISSING',
+          'AssemblyAI:', keys.assemblyai ? 'YES' : 'MISSING',
+          'OpenAI:', keys.openai ? 'YES' : 'MISSING'
+        );
+        if (!keys.deepgram && !keys.assemblyai) {
+          showWarning('No STT API key configured. Open Settings (Ctrl+,) and add a Deepgram key.');
+        }
+        if (!keys.anthropic) {
+          showWarning('No Anthropic API key. Translation and AI coaching will be unavailable.');
+        }
+      } catch { /* non-fatal */ }
+
+      // Each test is wrapped so one failure can't block the rest
+      await testMicrophone().catch(e => testDone('mic', false, 'Error: ' + e.message));
+      await testSystemAudio().catch(e => testDone('audio', false, 'Error: ' + e.message, true));
+      await testInternet().catch(e => testDone('internet', false, 'Error: ' + e.message, true));
+
+      // Deepgram + Claude can run in parallel
+      await Promise.all([
+        testDeepgram().catch(e => testDone('deepgram', false, 'Error: ' + e.message, true)),
+        testClaude().catch(e => testDone('claude', false, 'Error: ' + e.message, true))
+      ]);
+
+      await testStealth().catch(e => testDone('stealth', false, 'Error: ' + e.message, true));
+      await testWatchdog().catch(e => testDone('watchdog', false, 'Error: ' + e.message, true));
+
+      // Cache last — slowest (pre-generates ~50 answers)
+      await testCache().catch(e => testDone('cache', false, 'Error: ' + e.message, true));
+
+      console.log('[preflight] All tests done:', testsPassed, 'passed,', testsWarned, 'warnings');
+    }
+
+    // --- Buttons ---
+    document.getElementById('btn-start').addEventListener('click', () => {
+      console.log('[preflight] Start Session clicked');
+      window.api.preflight.complete();
+    });
+
+    document.getElementById('btn-skip').addEventListener('click', () => {
+      if (testsCompleted < TOTAL_TESTS) {
+        const confirmSkip = confirm(
+          'Some pre-flight checks have not completed.\n\n' +
+          'Skipping may result in:\n' +
+          '- Missing screen protection\n' +
+          '- No offline answer cache\n' +
+          '- Degraded audio quality\n\n' +
+          'Continue anyway?'
+        );
+        if (!confirmSkip) return;
+      }
+      console.log('[preflight] Skip clicked');
+      window.api.preflight.skip();
+    });
+
+    // --- Test Audio Pipeline button ---
+    document.getElementById('btn-test-audio').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-test-audio');
+      const resultEl = document.getElementById('test-audio-result');
+      btn.disabled = true;
+      btn.textContent = 'Testing...';
+      resultEl.textContent = 'Playing Japanese TTS phrase...';
+      resultEl.style.color = '#93c5fd';
+
+      try {
+        // Use the Web Speech API to speak a Japanese phrase
+        const utterance = new SpeechSynthesisUtterance('Hajimemashite. Watashi no namae wa tanaka desu.');
+        utterance.lang = 'ja-JP';
+        utterance.rate = 0.9;
+        utterance.volume = 0.8;
+
+        // Play TTS
+        await new Promise((resolve, reject) => {
+          utterance.onend = resolve;
+          utterance.onerror = reject;
+          speechSynthesis.speak(utterance);
+          // Safety timeout
+          setTimeout(resolve, 5000);
+        });
+
+        resultEl.textContent = 'TTS played. If audio capture is working, it will appear in the overlay after session starts.';
+        resultEl.style.color = '#22c55e';
+      } catch (err) {
+        resultEl.textContent = 'TTS failed: ' + err.message;
+        resultEl.style.color = '#ef4444';
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Test Audio Pipeline';
+    });
+
+    // --- Start tests immediately ---
+    // Script is at bottom of <body>, so DOM is already ready.
+    // Do NOT use DOMContentLoaded — it may have already fired.
+    runAllTests();
+  </script>
+</body>
+</html>

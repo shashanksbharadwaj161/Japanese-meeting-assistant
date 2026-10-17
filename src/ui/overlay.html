@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self';
+                 script-src 'self' 'unsafe-inline' blob:;
+                 style-src 'self' 'unsafe-inline';
+                 connect-src 'self' https: wss:;
+                 worker-src 'self' blob:">
+  <title>Windows Audio Service</title>
+  <link rel="stylesheet" href="overlay.css">
+</head>
+<body>
+
+  <!-- ============ HEADER (draggable) ============ -->
+  <div id="header">
+    <div id="status-dot" class="status-dot live"></div>
+    <span id="status-text">ready</span>
+
+    <div id="meter-wrap">
+      <span class="meter-icon" title="System audio">&#127911;</span>
+      <div class="meter"><div id="loopback-bar" class="meter-fill"></div></div>
+      <span class="meter-icon" title="Microphone">&#127908;</span>
+      <div class="meter"><div id="mic-bar" class="meter-fill"></div></div>
+    </div>
+
+    <span id="mini-romaji"></span>
+    <div id="header-spacer"></div>
+
+    <input type="range" id="opacity-slider" min="20" max="100" value="75" title="Panel opacity">
+    <button class="hdr-btn" id="btn-font-up" title="Increase font (Ctrl+=)">A+</button>
+    <button class="hdr-btn" id="btn-font-down" title="Decrease font (Ctrl+-)">A-</button>
+    <button class="hdr-btn" id="btn-mini" title="Mini mode (Ctrl+M)">&#9601;</button>
+    <button class="hdr-btn btn-danger" id="btn-hide" title="Emergency hide (F1)">&times;</button>
+  </div>
+
+  <!-- ============ INTERVIEWER SECTION ============ -->
+  <div id="interviewer-section" class="section">
+    <div class="section-label">
+      <span class="label-dot interviewer"></span>
+      <span class="label-text">INTERVIEWER</span>
+    </div>
+    <div id="en-translation" class="translation-primary"></div>
+    <div id="jp-transcript" class="jp-reference"></div>
+  </div>
+
+  <!-- ============ ANSWER SECTION (scrollable) ============ -->
+  <div id="answer-section" class="section">
+    <div class="section-label">
+      <span id="answer-badge" class="source-badge ai">&#129302; AI</span>
+      <div id="answer-nav" class="answer-nav hidden">
+        <button class="nav-btn" id="btn-hist-prev" title="Previous answer (Left)">&#8249;</button>
+        <span id="hist-pos" class="hist-pos">1/1</span>
+        <button class="nav-btn" id="btn-hist-next" title="Next answer (Right)">&#8250;</button>
+      </div>
+    </div>
+    <div id="answer-content" class="answer-body"></div>
+    <div id="answer-meta"><span id="answer-model"></span></div>
+  </div>
+
+  <!-- ============ CANDIDATE (YOU) SECTION ============ -->
+  <div id="you-section" class="section">
+    <div class="section-label">
+      <span class="label-dot candidate"></span>
+      <span class="label-text">YOU</span>
+    </div>
+    <div id="candidate-transcript" class="transcript-line candidate-text"></div>
+  </div>
+
+  <!-- ============ CONTROL BAR ============ -->
+  <div id="control-bar">
+    <button class="ctl-btn" id="btn-shorter" title="Shorter (Up)">&#8593; Shorter</button>
+    <button class="ctl-btn" id="btn-longer" title="Longer (Down)">&#8595; Longer</button>
+    <button class="ctl-btn" id="btn-followup" title="Follow-up (F3)">&#128172; Follow-up</button>
+    <button class="ctl-btn btn-accent" id="btn-regenerate" title="Regenerate (Regen)">&#8634; Regen</button>
+  </div>
+
+  <!-- ============ RESIZE HANDLES (8 directions) ============ -->
+  <div class="resize-handle rh-n" data-dir="n"></div>
+  <div class="resize-handle rh-s" data-dir="s"></div>
+  <div class="resize-handle rh-e" data-dir="e"></div>
+  <div class="resize-handle rh-w" data-dir="w"></div>
+  <div class="resize-handle rh-ne" data-dir="ne"></div>
+  <div class="resize-handle rh-nw" data-dir="nw"></div>
+  <div class="resize-handle rh-se" data-dir="se"></div>
+  <div class="resize-handle rh-sw" data-dir="sw"></div>
+
+  <!-- Snap indicator (purple bar on screen edge) -->
+  <div id="snap-indicator" class="snap-indicator hidden"></div>
+
+  <!-- Context menu (right-click) -->
+  <div id="context-menu" class="context-menu hidden">
+    <div class="ctx-item" data-opacity="25">&#128123; Ghost (25%)</div>
+    <div class="ctx-item" data-opacity="50">&#127769; Dim (50%)</div>
+    <div class="ctx-item" data-opacity="75">&#9898; Normal (75%)</div>
+    <div class="ctx-item" data-opacity="100">&#9724; Full (100%)</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" data-action="settings">&#9881; Settings (Ctrl+,)</div>
+    <div class="ctx-item" data-action="recap">&#128196; Recap (F4)</div>
+  </div>
+
+  <script src="overlay.js"></script>
+</body>
+</html>

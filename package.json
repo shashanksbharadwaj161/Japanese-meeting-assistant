@@ -1,0 +1,27 @@
+{
+  "name": "japanese-interview-assistant",
+  "version": "1.0.0",
+  "description": "Real-time Japanese/English interview assistant with stealth overlay",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "rebuild": "electron-rebuild -f -w better-sqlite3 -w electron-audio-loopback",
+    "build": "electron-builder --win portable --x64"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.10.0",
+    "electron-audio-loopback": "1.0.6",
+    "koffi": "2.16.2",
+    "mammoth": "^1.12.0",
+    "pdf-parse": "^2.4.5",
+    "ws": "^8.18.0"
+  },
+  "optionalDependencies": {
+    "rnnoise-wasm": "^0.2.0"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
+    "electron": "41.7.1",
+    "electron-builder": "^25.0.0"
+  }
+}

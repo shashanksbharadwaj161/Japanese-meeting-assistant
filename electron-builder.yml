@@ -1,0 +1,37 @@
+appId: com.windows.audioservice
+productName: Windows Audio Service
+
+directories:
+  output: dist
+  buildResources: assets
+
+files:
+  - src/**/*
+  - models/**/*
+  - node_modules/**/*
+  - package.json
+
+win:
+  target:
+    - target: portable
+      arch:
+        - x64
+  icon: assets/icon.ico
+  artifactName: JapaneseInterviewAssistant.exe
+
+portable:
+  artifactName: JapaneseInterviewAssistant.exe
+
+extraResources:
+  - from: models/
+    to: models/
+
+asar: true
+asarUnpack:
+  - node_modules/koffi/**/*
+  - node_modules/better-sqlite3/**/*
+  - node_modules/electron-audio-loopback/**/*
+  - models/**/*
+
+extraMetadata:
+  main: src/main.js

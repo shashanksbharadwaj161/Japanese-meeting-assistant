@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https:">
+  <title>Settings</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+      background: rgba(10, 10, 14, 0.98);
+      color: #E4E4E7;
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ============ SIDEBAR ============ */
+    .sidebar {
+      width: 200px;
+      flex-shrink: 0;
+      background: rgba(255,255,255,0.02);
+      border-right: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      flex-direction: column;
+      padding: 16px 0;
+    }
+
+    .sidebar-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      padding: 0 20px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      margin-bottom: 8px;
+      letter-spacing: 0.2px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      font-size: 13px;
+      color: #A1A1AA;
+      cursor: pointer;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      border-left: 3px solid transparent;
+      transition: all 0.15s ease;
+    }
+    .nav-item:hover { color: #E4E4E7; background: rgba(255,255,255,0.04); }
+    .nav-item.active {
+      color: #fff;
+      background: rgba(139, 92, 246, 0.08);
+      border-left-color: #8B5CF6;
+    }
+    .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 12px 20px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .save-indicator {
+      font-size: 11px;
+      color: #22C55E;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .save-indicator.visible { opacity: 1; }
+
+    /* ============ MAIN CONTENT ============ */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .main-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      flex-shrink: 0;
+    }
+    .main-header h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+    }
+    .btn-close {
+      width: 30px; height: 30px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+      color: #71717A;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .btn-close:hover { background: rgba(239,68,68,0.12); color: #EF4444; border-color: rgba(239,68,68,0.3); }
+
+    .panels-wrap {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.06) transparent;
+    }
+    .panels-wrap::-webkit-scrollbar { width: 5px; }
+    .panels-wrap::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ============ CARD ============ */
+    .card {
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #8B5CF6;
+      margin-bottom: 16px;
+    }
+
+    /* ============ FORM ELEMENTS ============ */
+    .form-group { margin-bottom: 14px; }
+    .form-group:last-child { margin-bottom: 0; }
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      color: #A1A1AA;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 9px 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      color: #E4E4E7;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(139, 92, 246, 0.5);
+      box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    input::placeholder, textarea::placeholder { color: #52525B; }
+    select option { background: #1a1a1e; color: #E4E4E7; }
+
+    /* Radio pills */
+    .radio-row {
+      display: flex;
+      gap: 3px;
+      flex-wrap: wrap;
+    }
+    .radio-row label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      color: #A1A1AA;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .radio-row label:hover { background: rgba(255,255,255,0.06); color: #E4E4E7; }
+    .radio-row input[type="radio"] { display: none; }
+    .radio-row label:has(input:checked) {
+      background: rgba(139, 92, 246, 0.12);
+      border-color: rgba(139, 92, 246, 0.4);
+      color: #fff;
+    }
+
+    /* Toggle switch */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+    }
+    .toggle-label { font-size: 13px; color: #D4D4D8; }
+    .toggle {
+      position: relative;
+      width: 42px;
+      height: 24px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .toggle input { display: none; }
+    .toggle .slider {
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.08);
+      border-radius: 12px;
+      transition: background 0.2s;
+    }
+    .toggle .slider::after {
+      content: '';
+      position: absolute;
+      width: 18px; height: 18px;
+      left: 3px; top: 3px;
+      background: #71717A;
+      border-radius: 50%;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .toggle input:checked + .slider { background: rgba(34, 197, 94, 0.3); }
+    .toggle input:checked + .slider::after { transform: translateX(18px); background: #22C55E; }
+
+    /* API key row */
+    .api-row {
+      display: flex;
+      gap: 6px;
+      align-items: flex-end;
+    }
+    .api-row .form-group { flex: 1; margin-bottom: 0; }
+    .api-actions { display: flex; gap: 4px; padding-bottom: 1px; }
+
+    .btn-sm {
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      color: #A1A1AA;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .btn-sm:hover { background: rgba(255,255,255,0.08); color: #fff; }
+    .btn-sm.pass { border-color: rgba(34,197,94,0.4); color: #22C55E; background: rgba(34,197,94,0.06); }
+    .btn-sm.fail { border-color: rgba(239,68,68,0.4); color: #EF4444; background: rgba(239,68,68,0.06); }
+
+    /* Save button (accent purple) */
+    .btn-accent {
+      padding: 10px 24px;
+      background: rgba(139, 92, 246, 0.15);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 8px;
+      color: #C4B5FD;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-accent:hover {
+      background: rgba(139, 92, 246, 0.25);
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
+      color: #fff;
+    }
+
+    /* Warning box */
+    .warning-box {
+      background: rgba(245, 158, 11, 0.06);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      color: #FBBF24;
+      line-height: 1.5;
+    }
+
+    .divider { height: 1px; background: rgba(255,255,255,0.06); margin: 16px 0; }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .slider-row input[type="range"] {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 4px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 2px;
+      outline: none;
+    }
+    .slider-row input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: #8B5CF6;
+      cursor: pointer;
+    }
+    .slider-val {
+      font-size: 12px;
+      color: #8B5CF6;
+      min-width: 36px;
+      text-align: right;
+      font-weight: 600;
+    }
+
+    .hint { font-size: 11px; color: #52525B; margin-top: 3px; }
+    code { background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+  </style>
+</head>
+<body>
+
+  <!-- ============ SIDEBAR ============ -->
+  <div class="sidebar">
+    <div class="sidebar-title">Settings</div>
+    <button class="nav-item active" data-tab="profile"><span class="nav-icon">&#128100;</span> Profile</button>
+    <button class="nav-item" data-tab="context"><span class="nav-icon">&#128196;</span> Context</button>
+    <button class="nav-item" data-tab="audio"><span class="nav-icon">&#127911;</span> Audio</button>
+    <button class="nav-item" data-tab="display"><span class="nav-icon">&#127912;</span> Display</button>
+    <button class="nav-item" data-tab="api"><span class="nav-icon">&#128273;</span> API Keys</button>
+    <button class="nav-item" data-tab="stealth"><span class="nav-icon">&#128065;</span> Stealth</button>
+    <div class="sidebar-footer">
+      <span id="save-indicator" class="save-indicator">&#10003; Saved</span>
+    </div>
+  </div>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+    <div class="main-header">
+      <h2 id="panel-title">Profile</h2>
+      <button id="btn-close" class="btn-close" title="Close">&times;</button>
+    </div>
+
+    <div class="panels-wrap">
+
+      <!-- PROFILE -->
+      <div id="panel-profile" class="panel active">
+        <div class="card">
+          <div class="card-title">Your Profile</div>
+          <div class="form-group">
+            <label>Name</label>
+            <input id="profile-name" type="text" placeholder="Your name (used in generated answers)">
+          </div>
+          <div class="form-group">
+            <label>Japanese Level (JLPT)</label>
+            <div class="radio-row">
+              <label><input type="radio" name="jlpt" value="N5"><span>N5</span></label>
+              <label><input type="radio" name="jlpt" value="N4"><span>N4</span></label>
+              <label><input type="radio" name="jlpt" value="N3" checked><span>N3</span></label>
+              <label><input type="radio" name="jlpt" value="N2"><span>N2</span></label>
+              <label><input type="radio" name="jlpt" value="N1"><span>N1</span></label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Answer Style</label>
+            <select id="profile-style">
+              <option value="casual">Casual</option>
+              <option value="polite" selected>Polite (teineigo)</option>
+              <option value="formal">Formal (keigo)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Output Format</label>
+            <select id="profile-format">
+              <option value="romaji" selected>Romaji only</option>
+              <option value="hiragana">Romaji + Hiragana</option>
+              <option value="mixed">Full Japanese (Kanji)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Answer Length</label>
+            <select id="profile-length">
+              <option value="short">Short (2-3 sentences)</option>
+              <option value="medium" selected>Medium (4-5 sentences)</option>
+              <option value="detailed">Detailed (6-8 sentences)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Interview Tone</label>
+            <select id="profile-tone">
+              <option value="humble" selected>Modest / Humble</option>
+              <option value="direct">Direct / Confident</option>
+              <option value="balanced">Mixed / Balanced</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTEXT -->
+      <div id="panel-context" class="panel">
+        <div class="card">
+          <div class="card-title">Interview Context</div>
+          <div class="form-group">
+            <label>Resume / Work History</label>
+            <textarea id="context-resume" rows="5" placeholder="Paste your resume here, or upload a file..."></textarea>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+              <button type="button" id="resume-upload" class="btn-sm">Upload PDF / Word</button>
+              <span id="resume-file-name" class="hint"></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Job Description</label>
+            <textarea id="context-jd" rows="5" placeholder="Paste the job description, or upload a file..."></textarea>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+              <button type="button" id="jd-upload" class="btn-sm">Upload PDF / Word</button>
+              <span id="jd-file-name" class="hint"></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Company Name</label>
+            <input id="context-company" type="text" placeholder="e.g. Toyota, Rakuten, Sony...">
+          </div>
+          <div class="form-group">
+            <label>Interview Type</label>
+            <select id="context-type">
+              <option value="HR">HR / General</option>
+              <option value="Technical">Technical</option>
+              <option value="Mixed">Mixed (HR + Technical)</option>
+              <option value="Language">Language Proficiency Test</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Key Things to Emphasize</label>
+            <textarea id="context-emphasize" rows="3" placeholder="Skills, achievements, or experiences to highlight..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Things to Avoid</label>
+            <textarea id="context-avoid" rows="3" placeholder="Sensitive topics to steer away from..."></textarea>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Prepared Scripts</div>
+          <p class="hint" style="margin-bottom:8px;">
+            Write Q&A pairs below. The app shows prepared answers first if a question matches.<br>
+            Format: <code>Q: question</code> then <code>A: your romaji answer</code>
+          </p>
+          <textarea id="script-text" rows="8" placeholder="Q: Jiko shoukai wo onegai shimasu.&#10;A: Watashi no namae wa Vijay desu. India kara kimashita.&#10;&#10;Q: Why do you want to work here?&#10;A: Kono kaisha no gijutsu to bunka ni totemo kyoumi ga arimasu."></textarea>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+            <button type="button" id="script-upload" class="btn-sm">Upload Script File</button>
+            <span id="script-pairs-count" class="hint"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- AUDIO -->
+      <div id="panel-audio" class="panel">
+        <div class="card">
+          <div class="card-title">Audio Devices</div>
+          <div class="form-group">
+            <label>System Audio Device</label>
+            <select id="audio-system"><option value="default">Default System Output</option></select>
+          </div>
+          <div class="form-group">
+            <label>Microphone Device</label>
+            <select id="audio-mic"><option value="default">Default Microphone</option></select>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Transcription</div>
+          <div class="form-group">
+            <label>Interviewer Language</label>
+            <select id="audio-language">
+              <option value="multi" selected>Auto-detect (JP + EN)</option>
+              <option value="ja">Japanese only</option>
+              <option value="en">English only</option>
+            </select>
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-label">Auto-answer mode</span>
+            <label class="toggle"><input type="checkbox" id="audio-auto-answer" checked><span class="slider"></span></label>
+          </div>
+          <div class="form-group">
+            <label>Question Detection Sensitivity</label>
+            <div class="slider-row">
+              <span class="hint">Fast</span>
+              <input type="range" id="audio-sensitivity" min="50" max="300" step="10" value="150">
+              <span class="hint">Slow</span>
+              <span class="slider-val" id="audio-sensitivity-val">1.5s</span>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-label">Noise suppression</span>
+            <label class="toggle"><input type="checkbox" id="audio-noise" checked><span class="slider"></span></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- DISPLAY -->
+      <div id="panel-display" class="panel">
+        <div class="card">
+          <div class="card-title">Overlay Display</div>
+          <div class="form-group">
+            <label>Panel Position</label>
+            <select id="display-position">
+              <option value="top-left">Top Left</option>
+              <option value="top-center" selected>Top Center</option>
+              <option value="top-right">Top Right</option>
+              <option value="bottom-center">Bottom Center</option>
+              <option value="custom">Custom (drag to position)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Opacity</label>
+            <div class="slider-row">
+              <input type="range" id="display-opacity" min="20" max="100" step="5" value="75">
+              <span class="slider-val" id="display-opacity-val">75%</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Font Size</label>
+            <select id="display-fontsize">
+              <option value="xs">XS</option>
+              <option value="small">Small</option>
+              <option value="medium">Medium</option>
+              <option value="large" selected>Large</option>
+              <option value="xl">XL</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Theme</label>
+            <select id="display-theme">
+              <option value="dark" selected>Dark</option>
+              <option value="light">Light</option>
+            </select>
+          </div>
+          <div class="divider"></div>
+          <div class="toggle-row">
+            <span class="toggle-label">Show EN question translation</span>
+            <label class="toggle"><input type="checkbox" id="display-show-en-q" checked><span class="slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-label">Show EN subtitles under romaji</span>
+            <label class="toggle"><input type="checkbox" id="display-show-en-subs" checked><span class="slider"></span></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- API KEYS -->
+      <div id="panel-api" class="panel">
+        <div class="warning-box">
+          API keys are stored locally in config.json beside your .exe. Never share this file. Keys are validated on save.
+        </div>
+
+        <div class="card">
+          <div class="card-title">Deepgram (Primary STT)</div>
+          <div class="api-row">
+            <div class="form-group">
+              <input id="api-deepgram" type="password" placeholder="Enter Deepgram API key">
+            </div>
+            <div class="api-actions">
+              <button class="btn-sm" id="api-deepgram-toggle" title="Show/hide">&#128065;</button>
+              <button class="btn-sm" id="api-deepgram-test" title="Test connection">Test</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Anthropic / Claude (Coaching + Translation)</div>
+          <div class="api-row">
+            <div class="form-group">
+              <input id="api-anthropic" type="password" placeholder="sk-ant-...">
+            </div>
+            <div class="api-actions">
+              <button class="btn-sm" id="api-anthropic-toggle" title="Show/hide">&#128065;</button>
+              <button class="btn-sm" id="api-anthropic-test" title="Test connection">Test</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">AssemblyAI <span style="color:#52525B;font-weight:400;">(optional — cloud STT fallback)</span></div>
+          <div class="api-row">
+            <div class="form-group">
+              <input id="api-assemblyai" type="password" placeholder="Enter AssemblyAI API key">
+            </div>
+            <div class="api-actions">
+              <button class="btn-sm" id="api-assemblyai-toggle" title="Show/hide">&#128065;</button>
+              <button class="btn-sm" id="api-assemblyai-test" title="Test connection">Test</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">OpenAI <span style="color:#52525B;font-weight:400;">(optional — GPT-4o-mini fallback)</span></div>
+          <div class="api-row">
+            <div class="form-group">
+              <input id="api-openai" type="password" placeholder="sk-...">
+            </div>
+            <div class="api-actions">
+              <button class="btn-sm" id="api-openai-toggle" title="Show/hide">&#128065;</button>
+              <button class="btn-sm" id="api-openai-test" title="Test connection">Test</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEALTH -->
+      <div id="panel-stealth" class="panel">
+        <div class="warning-box">
+          These settings control how the app hides from screen capture and recording software.
+          Changing them may affect visibility in Zoom/Teams/Meet screen shares.
+        </div>
+        <div class="card">
+          <div class="card-title">Stealth Options</div>
+          <div class="toggle-row">
+            <span class="toggle-label">Hide from taskbar</span>
+            <label class="toggle"><input type="checkbox" id="stealth-taskbar" checked><span class="slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-label">Hide from Alt-Tab</span>
+            <label class="toggle"><input type="checkbox" id="stealth-alttab" checked><span class="slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-label">Screen share protection (WDA_EXCLUDEFROMCAPTURE)</span>
+            <label class="toggle"><input type="checkbox" id="stealth-screen" checked><span class="slider"></span></label>
+          </div>
+          <div class="form-group">
+            <label>Process Name (disguise)</label>
+            <input id="stealth-process" type="text" value="Windows Audio Service">
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-label">Run self-test on startup</span>
+            <label class="toggle"><input type="checkbox" id="stealth-selftest" checked><span class="slider"></span></label>
+          </div>
+          <div class="form-group">
+            <label>Emergency Hide Key</label>
+            <select id="stealth-key">
+              <option value="F1" selected>F1</option>
+              <option value="F2">F2</option>
+              <option value="F3">F3</option>
+              <option value="F5">F5</option>
+              <option value="F9">F9</option>
+              <option value="F12">F12</option>
+            </select>
+          </div>
+          <div class="divider"></div>
+          <button class="btn-sm" id="btn-run-selftest">Run Stealth Self-Test Now</button>
+        </div>
+      </div>
+
+    </div><!-- /panels-wrap -->
+  </div><!-- /main -->
+
+  <script>
+    const PANEL_TITLES = {
+      profile: 'Profile', context: 'Interview Context', audio: 'Audio',
+      display: 'Display', api: 'API Keys', stealth: 'Stealth'
+    };
+
+    document.querySelectorAll('.nav-item').forEach(nav => {
+      nav.addEventListener('click', () => {
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        nav.classList.add('active');
+        const tab = nav.dataset.tab;
+        document.getElementById('panel-' + tab).classList.add('active');
+        document.getElementById('panel-title').textContent = PANEL_TITLES[tab] || tab;
+      });
+    });
+
+    document.getElementById('btn-close').addEventListener('click', () => window.close());
+
+    let currentConfig = {};
+
+    async function loadSettings() {
+      currentConfig = await window.api.storage.getConfig() || {};
+      const p = currentConfig.profile || {};
+      const c = currentConfig.context || {};
+      const a = currentConfig.audio || {};
+      const d = currentConfig.display || {};
+      const k = currentConfig.apiKeys || {};
+      const s = currentConfig.stealth || {};
+
+      document.getElementById('profile-name').value = p.name || '';
+      const jlptRadio = document.querySelector('input[name="jlpt"][value="' + (p.level || 'N3') + '"]');
+      if (jlptRadio) jlptRadio.checked = true;
+      document.getElementById('profile-style').value = p.style || 'polite';
+      document.getElementById('profile-format').value = p.format || 'romaji';
+      document.getElementById('profile-length').value = p.length || 'medium';
+      document.getElementById('profile-tone').value = p.tone || 'humble';
+
+      document.getElementById('context-resume').value = c.resume || '';
+      document.getElementById('context-jd').value = c.jobDescription || '';
+      document.getElementById('context-company').value = c.company || '';
+      document.getElementById('context-type').value = c.interviewType || 'HR';
+      document.getElementById('context-emphasize').value = c.emphasize || '';
+      document.getElementById('context-avoid').value = c.avoid || '';
+      if (c.resumeFileName) document.getElementById('resume-file-name').textContent = c.resumeFileName;
+      if (c.jobDescFileName) document.getElementById('jd-file-name').textContent = c.jobDescFileName;
+
+      const scripts = currentConfig.scripts || {};
+      document.getElementById('script-text').value = scripts.rawText || '';
+      if (scripts.pairs && scripts.pairs.length > 0) {
+        document.getElementById('script-pairs-count').textContent = scripts.pairs.length + ' Q&A pairs detected';
+      }
+
+      document.getElementById('audio-language').value = a.language || 'multi';
+      document.getElementById('audio-auto-answer').checked = a.autoAnswer !== false;
+      document.getElementById('audio-sensitivity').value = (a.sensitivity || 1.5) * 100;
+      updateSensitivityDisplay();
+      document.getElementById('audio-noise').checked = a.noiseSuppression !== false;
+
+      document.getElementById('display-position').value = d.position || 'top-center';
+      document.getElementById('display-opacity').value = d.opacity || 75;
+      updateOpacityDisplay();
+      document.getElementById('display-fontsize').value = d.fontSize || 'large';
+      document.getElementById('display-theme').value = d.theme || 'dark';
+      document.getElementById('display-show-en-q').checked = d.showENQuestion !== false;
+      document.getElementById('display-show-en-subs').checked = d.showENSubs !== false;
+
+      document.getElementById('api-deepgram').value = k.deepgram || '';
+      document.getElementById('api-anthropic').value = k.anthropic || '';
+      document.getElementById('api-assemblyai').value = k.assemblyai || '';
+      document.getElementById('api-openai').value = k.openai || '';
+
+      document.getElementById('stealth-taskbar').checked = s.hideTaskbar !== false;
+      document.getElementById('stealth-alttab').checked = s.hideAltTab !== false;
+      document.getElementById('stealth-screen').checked = s.screenProtection !== false;
+      document.getElementById('stealth-process').value = s.processName || 'Windows Audio Service';
+      document.getElementById('stealth-selftest').checked = s.selfTest !== false;
+      document.getElementById('stealth-key').value = s.emergencyKey || 'F1';
+
+      populateAudioDevices();
+    }
+
+    async function populateAudioDevices() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(t => t.stop());
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const micSelect = document.getElementById('audio-mic');
+        const sysSelect = document.getElementById('audio-system');
+        micSelect.innerHTML = '<option value="default">Default Microphone</option>';
+        sysSelect.innerHTML = '<option value="default">Default System Output</option>';
+        devices.forEach(d => {
+          if (d.kind === 'audioinput' && d.deviceId !== 'default') {
+            const opt = document.createElement('option');
+            opt.value = d.deviceId;
+            opt.textContent = d.label || ('Mic ' + d.deviceId.substring(0, 8));
+            micSelect.appendChild(opt);
+          }
+          if (d.kind === 'audiooutput' && d.deviceId !== 'default') {
+            const opt = document.createElement('option');
+            opt.value = d.deviceId;
+            opt.textContent = d.label || ('Output ' + d.deviceId.substring(0, 8));
+            sysSelect.appendChild(opt);
+          }
+        });
+        const au = currentConfig.audio || {};
+        if (au.micDevice) micSelect.value = au.micDevice;
+        if (au.systemDevice) sysSelect.value = au.systemDevice;
+      } catch (err) {
+        console.warn('Could not enumerate audio devices:', err.message);
+      }
+    }
+
+    function gatherConfig() {
+      const jlptChecked = document.querySelector('input[name="jlpt"]:checked');
+      return {
+        profile: {
+          name: document.getElementById('profile-name').value,
+          level: jlptChecked ? jlptChecked.value : 'N3',
+          style: document.getElementById('profile-style').value,
+          format: document.getElementById('profile-format').value,
+          length: document.getElementById('profile-length').value,
+          tone: document.getElementById('profile-tone').value
+        },
+        context: {
+          resume: document.getElementById('context-resume').value,
+          resumeFileName: document.getElementById('resume-file-name').textContent || '',
+          jobDescription: document.getElementById('context-jd').value,
+          jobDescFileName: document.getElementById('jd-file-name').textContent || '',
+          company: document.getElementById('context-company').value,
+          interviewType: document.getElementById('context-type').value,
+          emphasize: document.getElementById('context-emphasize').value,
+          avoid: document.getElementById('context-avoid').value
+        },
+        audio: {
+          systemDevice: document.getElementById('audio-system').value,
+          micDevice: document.getElementById('audio-mic').value,
+          language: document.getElementById('audio-language').value,
+          autoAnswer: document.getElementById('audio-auto-answer').checked,
+          sensitivity: parseInt(document.getElementById('audio-sensitivity').value) / 100,
+          noiseSuppression: document.getElementById('audio-noise').checked
+        },
+        display: {
+          position: document.getElementById('display-position').value,
+          opacity: parseInt(document.getElementById('display-opacity').value),
+          fontSize: document.getElementById('display-fontsize').value,
+          theme: document.getElementById('display-theme').value,
+          showENQuestion: document.getElementById('display-show-en-q').checked,
+          showENSubs: document.getElementById('display-show-en-subs').checked
+        },
+        apiKeys: {
+          deepgram: document.getElementById('api-deepgram').value.trim(),
+          anthropic: document.getElementById('api-anthropic').value.trim(),
+          assemblyai: document.getElementById('api-assemblyai').value.trim(),
+          openai: document.getElementById('api-openai').value.trim()
+        },
+        stealth: {
+          hideTaskbar: document.getElementById('stealth-taskbar').checked,
+          hideAltTab: document.getElementById('stealth-alttab').checked,
+          screenProtection: document.getElementById('stealth-screen').checked,
+          processName: document.getElementById('stealth-process').value,
+          selfTest: document.getElementById('stealth-selftest').checked,
+          emergencyKey: document.getElementById('stealth-key').value
+        },
+        panel: currentConfig.panel || {},
+        scripts: currentConfig.scripts || {}
+      };
+    }
+
+    let saveTimeout = null;
+    function scheduleAutoSave() {
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(async () => {
+        const config = gatherConfig();
+        await window.api.storage.saveConfig(config);
+        currentConfig = config;
+        showSaved();
+      }, 500);
+    }
+
+    function showSaved() {
+      const ind = document.getElementById('save-indicator');
+      ind.classList.add('visible');
+      clearTimeout(ind._timer);
+      ind._timer = setTimeout(() => ind.classList.remove('visible'), 2000);
+    }
+
+    document.querySelectorAll('input, select, textarea').forEach(el => {
+      el.addEventListener('input', scheduleAutoSave);
+      el.addEventListener('change', scheduleAutoSave);
+    });
+
+    function updateSensitivityDisplay() {
+      const val = parseInt(document.getElementById('audio-sensitivity').value) / 100;
+      document.getElementById('audio-sensitivity-val').textContent = val.toFixed(1) + 's';
+    }
+    function updateOpacityDisplay() {
+      document.getElementById('display-opacity-val').textContent = document.getElementById('display-opacity').value + '%';
+    }
+    document.getElementById('audio-sensitivity').addEventListener('input', updateSensitivityDisplay);
+    document.getElementById('display-opacity').addEventListener('input', updateOpacityDisplay);
+
+    ['deepgram', 'anthropic', 'assemblyai', 'openai'].forEach(name => {
+      const toggleBtn = document.getElementById('api-' + name + '-toggle');
+      const input = document.getElementById('api-' + name);
+      if (toggleBtn && input) {
+        toggleBtn.addEventListener('click', () => {
+          input.type = input.type === 'password' ? 'text' : 'password';
+        });
+      }
+    });
+
+    ['deepgram', 'anthropic', 'assemblyai', 'openai'].forEach(name => {
+      const testBtn = document.getElementById('api-' + name + '-test');
+      if (!testBtn) return;
+      testBtn.addEventListener('click', async () => {
+        const key = document.getElementById('api-' + name).value.trim();
+        if (!key) {
+          testBtn.textContent = 'No key'; testBtn.className = 'btn-sm fail';
+          setTimeout(() => { testBtn.textContent = 'Test'; testBtn.className = 'btn-sm'; }, 2000);
+          return;
+        }
+        testBtn.textContent = '...'; testBtn.className = 'btn-sm';
+        try {
+          let ok = false;
+          if (name === 'anthropic') {
+            const resp = await fetch('https://api.anthropic.com/v1/messages', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+              body: JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 4, messages: [{ role: 'user', content: 'hi' }] })
+            });
+            ok = resp.ok || resp.status === 400;
+          } else if (name === 'deepgram') {
+            const resp = await fetch('https://api.deepgram.com/v1/projects', { headers: { 'Authorization': 'Token ' + key } });
+            ok = resp.ok;
+          } else if (name === 'assemblyai') {
+            const resp = await fetch('https://api.assemblyai.com/v2/transcript', {
+              method: 'POST',
+              headers: { 'Authorization': key, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ audio_url: 'https://example.com/test.wav' })
+            });
+            ok = resp.ok || resp.status === 400;
+          } else if (name === 'openai') {
+            const resp = await fetch('https://api.openai.com/v1/models', { headers: { 'Authorization': 'Bearer ' + key } });
+            ok = resp.ok;
+          }
+          testBtn.textContent = ok ? 'Pass' : 'Fail';
+          testBtn.className = ok ? 'btn-sm pass' : 'btn-sm fail';
+        } catch {
+          testBtn.textContent = 'Fail'; testBtn.className = 'btn-sm fail';
+        }
+        setTimeout(() => { testBtn.textContent = 'Test'; testBtn.className = 'btn-sm'; }, 3000);
+      });
+    });
+
+    document.getElementById('btn-run-selftest').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-run-selftest');
+      btn.textContent = 'Testing...';
+      try {
+        const result = await window.api.stealth.runSelfTest();
+        btn.textContent = result.safe ? 'PASS — invisible' : 'FAIL — may be visible';
+        btn.className = result.safe ? 'btn-sm pass' : 'btn-sm fail';
+      } catch {
+        btn.textContent = 'Error'; btn.className = 'btn-sm fail';
+      }
+      setTimeout(() => { btn.textContent = 'Run Stealth Self-Test Now'; btn.className = 'btn-sm'; }, 4000);
+    });
+
+    async function handleFileUpload(textareaId, fileNameSpanId) {
+      try {
+        const result = await window.api.files.pickAndParse();
+        if (result.canceled) return;
+        if (!result.success) { alert('Failed to parse file: ' + result.message); return; }
+        document.getElementById(textareaId).value = result.text;
+        document.getElementById(fileNameSpanId).textContent = result.fileName;
+        scheduleAutoSave();
+      } catch (err) {
+        alert('Error uploading file: ' + err.message);
+      }
+    }
+
+    document.getElementById('resume-upload').addEventListener('click', () => handleFileUpload('context-resume', 'resume-file-name'));
+    document.getElementById('jd-upload').addEventListener('click', () => handleFileUpload('context-jd', 'jd-file-name'));
+
+    document.getElementById('script-upload').addEventListener('click', async () => {
+      try {
+        const result = await window.api.files.pickAndParse();
+        if (result.canceled) return;
+        if (!result.success) { alert('Failed to parse file: ' + result.message); return; }
+        document.getElementById('script-text').value = result.text;
+        await saveScriptText(result.text);
+      } catch (err) {
+        alert('Error uploading script: ' + err.message);
+      }
+    });
+
+    async function saveScriptText(text) {
+      try {
+        const result = await window.api.scripts.save(text);
+        if (result.success) {
+          const el = document.getElementById('script-pairs-count');
+          el.textContent = result.pairCount + ' Q&A pairs detected';
+          el.style.color = result.pairCount > 0 ? '#22C55E' : '#52525B';
+        }
+      } catch (err) { console.warn('Script save error:', err.message); }
+    }
+
+    document.getElementById('script-text').addEventListener('input', () => {
+      clearTimeout(document.getElementById('script-text')._saveTimer);
+      document.getElementById('script-text')._saveTimer = setTimeout(() => {
+        saveScriptText(document.getElementById('script-text').value);
+      }, 800);
+    });
+
+    document.addEventListener('DOMContentLoaded', loadSettings);
+  </script>
+</body>
+</html>

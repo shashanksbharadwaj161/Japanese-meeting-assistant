@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+config.json
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+.claude/
+.DS_Store
+Thumbs.db
